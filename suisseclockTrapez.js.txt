@@ -1,0 +1,123 @@
+/* ──────────────────────────────────────────────────────────────
+   SUISSE CLOCK CFF STYLE - TRAPÉZOÏDES + BOND MINUTE + COUNTDOWN
+────────────────────────────────────────────────────────────── */
+(function(){
+    const canvas = document.getElementById('center-clock-canvas');
+    const CLOCK_SIZE = 460;
+
+    function clockRadius(){ return CLOCK_SIZE*0.42; }
+    function sizeCanvas(){ canvas.width = CLOCK_SIZE; canvas.height = CLOCK_SIZE; }
+
+    const Clock = function(canvas,radius){
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d');
+        this.radius = radius;
+
+        this.secondHandOptions = { color:'#cd151c', thicknessRatio:0.011, forwardRadiusRatio:0.75, backwardRadiusRatio:0.25, tipRadiusRatio:0.075 };
+        this.minuteHandOptions = { color:'#1a1a1a', thicknessRatio:0.030, forwardRadiusRatio:0.78, backwardRadiusRatio:0.14 };
+        this.hourHandOptions   = { color:'#1a1a1a', thicknessRatio:0.036, forwardRadiusRatio:0.52, backwardRadiusRatio:0.14 };
+
+        this.markerOptions = { color:'#1a1a1a', edgeDistanceRatio:0.05, thicknessRatio:0.01, lengthRatio:0.1, keyMarkers:5, keyMarkerThicknessRatio:0.075, keyMarkerLengthRatio:0.2 };
+
+        this.update();
+    };
+
+    Clock.prototype.drawFace = function(){
+        const ctx = this.ctx, r=this.radius;
+        const grad = ctx.createRadialGradient(r,r,0,r,r,r);
+        grad.addColorStop(0,"rgba(255,231,180,0)");
+        grad.addColorStop(1,"rgba(182,157,100,0.3)");
+
+        ctx.beginPath();
+        ctx.arc(r,r,r,0,2*Math.PI);
+        ctx.fillStyle='#fff'; ctx.fill();
+        ctx.fillStyle=grad; ctx.fill();
+    };
+
+    Clock.prototype.drawPin = function(){
+        const ctx=this.ctx; ctx.fillStyle='#999';
+        ctx.beginPath();
+        ctx.arc(this.radius,this.radius,4,0,2*Math.PI);
+        ctx.fill();
+    };
+
+    Clock.prototype.drawMarkers = function(){
+        const ctx=this.ctx,r=this.radius,cx=r,cy=r;
+        for(let i=1;i<=60;i++){
+            const angle=(Math.PI*2)*(-i/60);
+            const isHour=i%5===0,isQuarter=i%15===0;
+            const outerD=r*0.92, innerD=isQuarter?r*0.68:isHour?r*0.72:r*0.84;
+            const lw=isQuarter?r*0.065:isHour?r*0.055:r*0.028;
+            ctx.strokeStyle=this.markerOptions.color; ctx.lineWidth=lw; ctx.lineCap='butt';
+            ctx.beginPath();
+            ctx.moveTo(Math.sin(angle)*outerD+cx, Math.cos(angle)*outerD+cy);
+            ctx.lineTo(Math.sin(angle)*innerD+cx, Math.cos(angle)*innerD+cy);
+            ctx.stroke();
+        }
+    };
+
+    Clock.prototype.drawTrapHand = function(angle,length,back,widthBase,widthTip,color){
+        const ctx=this.ctx,r=this.radius,cx=r,cy=r;
+        ctx.save(); ctx.translate(cx,cy); ctx.rotate(-angle);
+        ctx.fillStyle=color; ctx.beginPath();
+        ctx.moveTo(-widthBase*r/2,back*r); ctx.lineTo(widthBase*r/2,back*r);
+        ctx.lineTo(widthTip*r/2,-length*r); ctx.lineTo(-widthTip*r/2,-length*r);
+        ctx.closePath(); ctx.fill(); ctx.restore();
+    };
+
+    // Heure
+    Clock.prototype.drawHourHand=function(){
+        const now=new Date();
+        const hours=(now.getHours()%12)+now.getMinutes()/60+now.getSeconds()/3600;
+        const angle=(Math.PI*2)*(hours/12);
+        this.drawTrapHand(angle,0.52,0.14,0.13,0.085,'#1a1a1a');
+    };
+
+    // Minute avec rebond
+    Clock.prototype.drawMinuteHand=function(){
+        const now=new Date();
+        let minutes=now.getMinutes();
+        const seconds=now.getSeconds();
+        const ms=now.getMilliseconds()/1000;
+        let bounce=0;
+        if(seconds===59){
+            const t=ms;
+            if(t<0.32) bounce=(t/0.32)*1.10;
+            else if(t<0.62) bounce=1.10-((t-0.32)/0.30)*0.18;
+            else bounce=0.92+((t-0.62)/0.38)*0.08;
+            minutes+=bounce;
+        }
+        const angle=(Math.PI*2)*(minutes/60);
+        this.drawTrapHand(angle,0.78,0.14,0.095,0.055,'#1a1a1a');
+    };
+
+    // Seconde fluide
+    Clock.prototype.drawSecondHand=function(){
+        const now=new Date();
+        const seconds=now.getSeconds()+now.getMilliseconds()/1000;
+        const angle=(Math.PI*2)*(seconds/60);
+        this.drawTrapHand(angle,0.75,0.25,0.011,0.011,'#cd151c');
+    };
+
+    Clock.prototype.update=function(){
+        this.center={x:this.canvas.width/2,y:this.canvas.height/2};
+        this.ctx.clearRect(0,0,this.canvas.width,this.canvas.height);
+        this.drawFace();
+        this.drawMarkers();
+        this.drawHourHand();
+        this.drawMinuteHand();
+        this.drawSecondHand();
+        this.drawPin();
+    };
+
+    sizeCanvas();
+    const clock=new Clock(canvas,clockRadius());
+
+    function render(){
+        clock.update();
+        requestAnimationFrame(render);
+    }
+
+    render();
+
+})();

@@ -1,0 +1,19 @@
+{
+  "name": "zmanim-pro-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "npm run build:css && npm run build:js",
+    "build:css": "tailwindcss -i ./src/tailwind.css -o ./dist/styles.css --minify",
+    "build:js": "esbuild ./src/app.jsx --bundle --format=iife --global-name=ZmanimPro --outfile=./dist/app.js --minify"
+  },
+  "dependencies": {
+    "lucide-react": "^0.468.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.0",
+    "tailwindcss": "^3.4.17"
+  }
+}
