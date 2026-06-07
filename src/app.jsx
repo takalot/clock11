@@ -217,7 +217,6 @@ function WeatherPanel({ weather, currentCity, className = '' }) {
                             return <WeatherIcon code={summarySlot?.code} />;
                         })()}
                         <div className="weather-day-head">
-                            <span>{WEATHER_DAY_NAMES[index]}</span>
                             <span className="digital-font">{formatWeatherDate(day.date)}</span>
                         </div>
                         <div className="weather-slots">

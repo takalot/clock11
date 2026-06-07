@@ -256,22 +256,22 @@
 		.center-clock-layout {
 			direction: ltr;
 			display: grid;
-			grid-template-columns: minmax(220px, 300px) auto minmax(235px, 305px);
+			grid-template-columns: minmax(240px, 1fr) auto minmax(240px, 1fr);
 			align-items: center;
 			justify-content: center;
-			column-gap: clamp(12px, 1.55vw, 30px);
+			column-gap: 0;
 			width: 100%;
 			max-width: 100%;
 			height: 100%;
-			padding: 0 clamp(4px, 0.8vw, 14px);
+			padding: 0 clamp(8px, 1.2vw, 22px);
 			min-height: 0;
 		}
 
 		.clock-info-panel {
 			direction: rtl;
-			justify-self: end;
+			justify-self: center;
 			align-self: center;
-			width: clamp(220px, 22vw, 300px);
+			width: clamp(220px, 24vw, 330px);
 			min-width: 220px;
 			margin-right: 0;
 			transform: none;
@@ -280,9 +280,9 @@
 
 		.clock-weather-panel {
 			direction: rtl;
-			justify-self: start;
+			justify-self: center;
 			align-self: center;
-			width: 100%;
+			width: clamp(280px, 27vw, 360px);
 			min-width: 0;
 			max-height: 100%;
 			z-index: 5;
@@ -291,26 +291,91 @@
 		.side-weather-card {
 			width: 100%;
 			max-height: 100%;
-			padding: 0.46rem 0.58rem;
+			gap: 0.48rem;
+			padding: 0.58rem 0.64rem;
 		}
 
 		.side-weather-card .weather-city {
-			font-size: 1.08rem;
-			margin-bottom: 0.04rem;
+			font-size: 1.16rem;
+			margin-bottom: 0.06rem;
+			padding-bottom: 0.28rem;
+			border-bottom: 1px solid rgba(255,255,255,0.08);
+		}
+
+		.side-weather-card .weather-city svg {
+			width: 21px;
+			height: 21px;
 		}
 
 		.side-weather-card .weather-days {
 			grid-template-columns: 1fr;
-			gap: 0.34rem;
+			gap: 0.42rem;
 		}
 
 		.side-weather-card .weather-day {
-			padding: 0.32rem 0.38rem 0.34rem;
+			direction: ltr;
+			display: grid;
+			grid-template-columns: 3.8rem minmax(0, 1fr);
+			grid-template-areas:
+				"icon head"
+				"icon slots"
+				"icon desc";
+			align-items: center;
+			column-gap: 0.58rem;
+			row-gap: 0.10rem;
+			padding: 0.42rem 0.54rem 0.44rem;
+			min-height: 112px;
 		}
 
 		.side-weather-card .weather-icon-main {
-			width: 1.52rem;
-			height: 1.52rem;
+			grid-area: icon;
+			width: 2.8rem;
+			height: 2.8rem;
+			margin: 0;
+			justify-self: center;
+			align-self: center;
+			stroke-width: 2.15;
+		}
+
+		.side-weather-card .weather-day-head {
+			grid-area: head;
+			direction: rtl;
+			justify-content: center;
+			text-align: center;
+			font-size: 0.82rem;
+			line-height: 1.05;
+		}
+
+		.side-weather-card .weather-slots {
+			grid-area: slots;
+			direction: rtl;
+			margin-top: 0;
+			gap: 0.24rem;
+			align-items: end;
+		}
+
+		.side-weather-card .weather-slot {
+			gap: 0.03rem;
+			font-size: 0.62rem;
+			line-height: 1.05;
+		}
+
+		.side-weather-card .weather-icon-mini {
+			width: 1.14rem;
+			height: 1.14rem;
+			margin-bottom: 0.02rem;
+		}
+
+		.side-weather-card .weather-slot strong {
+			font-size: 1.16rem;
+		}
+
+		.side-weather-card .weather-desc {
+			grid-area: desc;
+			direction: rtl;
+			margin-top: 0.02rem;
+			font-size: 0.72rem;
+			text-align: right;
 		}
 
 		.clock-canvas-wrap {
@@ -320,6 +385,7 @@
 			display: flex;
 			align-items: stretch;
 			justify-content: center;
+			justify-self: center;
 			overflow: visible;
 		}
 
@@ -353,6 +419,16 @@
 
             .side-weather-card .weather-days {
                 grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+
+            .side-weather-card .weather-day {
+                grid-template-columns: 1fr;
+                grid-template-areas:
+                    "icon"
+                    "head"
+                    "slots"
+                    "desc";
+                min-height: 0;
             }
         }
 
