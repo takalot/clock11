@@ -924,6 +924,10 @@
 <body>
     <div id="root"></div>
 
-<script src="dist/app.js"></script>
+<script>
+    const appScript = document.createElement('script');
+    appScript.src = `dist/app.js?v=${Date.now()}`;
+    document.body.appendChild(appScript);
+</script>
 </body>
 </html>

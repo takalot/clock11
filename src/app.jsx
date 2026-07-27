@@ -43,6 +43,7 @@ const HEBREW_DAYS = [
 
 const WEATHER_DAY_NAMES = ['היום', 'מחר', 'מחרתיים'];
 const WEATHER_SLOT_LABELS = { 6: 'בוקר', 12: 'צהריים', 18: 'ערב' };
+const WEATHER_REFRESH_INTERVAL_MS = 2 * 60 * 1000;
 
 const PARASHA_RANGES = {
     "Parashat Bereshit":         { book: "Genesis",      hebrewBook: "בראשית", startChapter: 1,  startVerse: 1,  endChapter: 6,  endVerse: 8  },
@@ -128,6 +129,21 @@ function formatTime(d) {
     });
 }
 
+function formatTimeForTimezone(date, timezone) {
+    if (!timezone) return formatTime(date).slice(0, 5);
+    try {
+        return new Intl.DateTimeFormat('fr-FR', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false,
+            timeZone: timezone
+        }).format(date);
+    } catch (e) {
+        console.warn('Invalid weather timezone:', timezone, e);
+        return formatTime(date).slice(0, 5);
+    }
+}
+
 function getLocalISODate(date) {
     const year  = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -144,6 +160,12 @@ function addDays(date, days) {
 function getWeatherForecast(weatherRes) {
     const hourly = weatherRes?.hourly;
     if (!hourly?.time || !hourly?.temperature_2m || !hourly?.weather_code) return null;
+    const currentRaw = weatherRes?.current || weatherRes?.current_weather || null;
+    const currentTemp = currentRaw?.temperature_2m ?? currentRaw?.temperature;
+    const currentCode = currentRaw?.weather_code ?? currentRaw?.weathercode;
+    const currentTime = typeof currentRaw?.time === 'string' && currentRaw.time.includes('T')
+        ? currentRaw.time.slice(11, 16)
+        : '';
     const WANTED_HOURS = [6, 12, 18];
     const LABELS = WEATHER_SLOT_LABELS;
     const byDate = {};
@@ -155,13 +177,19 @@ function getWeatherForecast(weatherRes) {
         if (!byDate[date]) byDate[date] = {};
         byDate[date][hour] = { temp: Math.round(hourly.temperature_2m[i]), code: hourly.weather_code[i], label: LABELS[hour] };
     }
-    const dates = Object.keys(byDate).sort().slice(0, 3);
+    const dates = Object.keys(byDate).sort().slice(0, 4);
     const days = dates.map(date => ({
         date,
         slots: WANTED_HOURS.map(h => byDate[date]?.[h] || null)
     }));
 
     return {
+        timezone: weatherRes?.timezone || null,
+        current: currentRaw ? {
+            temp: Number.isFinite(Number(currentTemp)) ? Math.round(Number(currentTemp)) : null,
+            code: Number.isFinite(Number(currentCode)) ? Number(currentCode) : null,
+            time: currentTime
+        } : null,
         weather7h:  byDate[dates[0]]?.[6]  || null,
         weather12h: byDate[dates[0]]?.[12] || null,
         days,
@@ -169,10 +197,31 @@ function getWeatherForecast(weatherRes) {
     };
 }
 
+async function fetchWeatherForecast(coords, signal) {
+    if (!coords) return null;
+    const response = await fetch(
+        `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lng}&current=temperature_2m,weather_code&hourly=temperature_2m,weather_code&timezone=auto&forecast_days=4`,
+        { cache: 'no-store', signal }
+    );
+    if (!response.ok) throw new Error(`Weather API error: ${response.status}`);
+    return getWeatherForecast(await response.json());
+}
+
 function formatWeatherDate(dateStr) {
     if (!dateStr) return '';
     const [, month, day] = dateStr.split('-');
     return `${day}.${month}`;
+}
+
+function formatWeatherWeekday(dateStr) {
+    if (!dateStr) return '';
+    const date = new Date(`${dateStr}T12:00:00`);
+    if (Number.isNaN(date.getTime())) return formatWeatherDate(dateStr);
+    return date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+}
+
+function getDaySummarySlot(day) {
+    return day?.slots?.[1] || day?.slots?.find(Boolean) || null;
 }
 
 function getWeatherDesc(code) {
@@ -197,31 +246,121 @@ function getWeatherIconMeta(code) {
     return { Icon: Cloud, kind: 'cloudy' };
 }
 
+function getTemperatureRgb(temp) {
+    if (temp === null || temp === undefined || Number.isNaN(Number(temp))) return '56,189,248';
+    const stops = [
+        { temp: 0,  rgb: [37, 99, 235] },
+        { temp: 10, rgb: [14, 165, 233] },
+        { temp: 18, rgb: [34, 197, 94] },
+        { temp: 25, rgb: [250, 204, 21] },
+        { temp: 31, rgb: [249, 115, 22] },
+        { temp: 38, rgb: [239, 68, 68] }
+    ];
+    const value = Number(temp);
+    if (value <= stops[0].temp) return stops[0].rgb.join(',');
+    if (value >= stops[stops.length - 1].temp) return stops[stops.length - 1].rgb.join(',');
+
+    const upperIndex = stops.findIndex(stop => value <= stop.temp);
+    const lower = stops[upperIndex - 1];
+    const upper = stops[upperIndex];
+    const ratio = (value - lower.temp) / (upper.temp - lower.temp);
+    return lower.rgb
+        .map((channel, index) => Math.round(channel + (upper.rgb[index] - channel) * ratio))
+        .join(',');
+}
+
+function getTemperatureStyle(temp) {
+    return { '--temp-rgb': getTemperatureRgb(temp) };
+}
+
+function getDayAverageTemp(day) {
+    const temps = day?.slots
+        ?.filter(Boolean)
+        .map(slot => Number(slot.temp))
+        .filter(temp => !Number.isNaN(temp)) || [];
+    if (!temps.length) return null;
+    return temps.reduce((sum, temp) => sum + temp, 0) / temps.length;
+}
+
+function getDayTemperatureStyle(day) {
+    return { '--weather-rgb': getTemperatureRgb(getDayAverageTemp(day)) };
+}
+
 function WeatherIcon({ code, size = 'main' }) {
     const { Icon, kind } = getWeatherIconMeta(code);
     return <Icon className={`weather-icon weather-icon-${size} weather-icon-${kind}`} aria-hidden="true" />;
 }
 
-function WeatherPanel({ weather, currentCity, className = '' }) {
+function WeatherPanel({ weather, currentCity, selectedCity, onCityChange, currentTime = '--:--', cities = CITIES, className = '' }) {
+    const [isCityPickerOpen, setIsCityPickerOpen] = useState(false);
+    const heroDay = weather?.days?.[0];
+    const fallbackHeroSlot = getDaySummarySlot(heroDay);
+    const heroTemp = weather?.current?.temp ?? fallbackHeroSlot?.temp;
+    const heroCode = weather?.current?.code ?? fallbackHeroSlot?.code;
+    const heroTime = currentTime.slice(0, 5);
+
     return (
         <section className={`header-card weather-card ${className}`.trim()}>
-            <div className="weather-city">
-                <MapPin aria-hidden="true" />
-                <span>{currentCity.name}</span>
+            <div className="weather-hero">
+                <button
+                    type="button"
+                    className="weather-city weather-city-button"
+                    onClick={() => setIsCityPickerOpen(open => !open)}
+                    aria-expanded={isCityPickerOpen}
+                    aria-label="Changer de ville"
+                    title="Changer de ville"
+                >
+                    <MapPin aria-hidden="true" />
+                    <span>{currentCity.name}</span>
+                </button>
+                {isCityPickerOpen && (
+                    <div className="weather-city-picker">
+                        {Object.entries(cities).map(([key, city]) => (
+                            <button
+                                type="button"
+                                key={key}
+                                className={`weather-city-option ${selectedCity === key ? 'active' : ''}`}
+                                onClick={() => {
+                                    onCityChange?.(key);
+                                    setIsCityPickerOpen(false);
+                                }}
+                            >
+                                {city.name}
+                            </button>
+                        ))}
+                    </div>
+                )}
+                <div className="weather-hero-icon" style={{ '--weather-rgb': getTemperatureRgb(heroTemp) }}>
+                    <WeatherIcon code={heroCode} size="hero" />
+                </div>
+                <div className="weather-hero-metrics">
+                    <div className="weather-hero-temp digital-font" style={getTemperatureStyle(heroTemp)}>
+                        {heroTemp ?? '--'}°
+                    </div>
+                    <div className="weather-hero-time digital-font">{heroTime}</div>
+                </div>
             </div>
-            <div className="weather-days">
-                {weather?.days?.length ? weather.days.slice(0, 3).map((day, index) => (
-                    <div className="weather-day" key={day.date || index}>
+            <div className="weather-forecast-strip">
+                {weather?.days?.length ? weather.days.slice(0, 4).map((day, index) => (
+                    <div className="weather-forecast-day" key={day.date || index} style={getDayTemperatureStyle(day)}>
                         {(() => {
-                            const summarySlot = day.slots[1] || day.slots.find(Boolean);
-                            return <WeatherIcon code={summarySlot?.code} />;
+                            const summarySlot = getDaySummarySlot(day);
+                            return <WeatherIcon code={summarySlot?.code} size="forecast" />;
                         })()}
                         <div className="weather-day-head">
-                            <span className="digital-font">{formatWeatherDate(day.date)}</span>
+                            <span>{formatWeatherWeekday(day.date)}</span>
                         </div>
+                        {(() => {
+                            const summarySlot = getDaySummarySlot(day);
+                            return (
+                                <strong className="weather-forecast-temp digital-font" style={getTemperatureStyle(summarySlot?.temp)}>
+                                    {summarySlot?.temp ?? '--'}°
+                                </strong>
+                            );
+                        })()}
                         <div className="weather-slots">
                             {day.slots.filter(Boolean).map(slot => (
-                                <div className="weather-slot" key={`${day.date}-${slot.label}`}>
+                                <div className="weather-slot" key={`${day.date}-${slot.label}`} style={getTemperatureStyle(slot.temp)}>
                                     <WeatherIcon code={slot.code} size="mini" />
                                     <span>{slot.label}</span>
                                     <strong className="digital-font">{slot.temp}ֲ°</strong>
@@ -409,7 +548,7 @@ async function fetchRandomPasukForParasha(parashaTitle) {
 /* ─────────────────────────────────────────────────────────────────
    CENTER CLOCK COMPONENT  — grande montre analogique au centre
 ───────────────────────────────────────────────────────────────── */
-function CenterClock({ curTime, nextZman, countdownData, weather, currentCity }) {
+function CenterClock({ curTime, nextZman, countdownData, weather, currentCity, selectedCity, onCityChange, weatherTime }) {
     const canvasRef = useRef(null);
     const clockStopRef = useRef(null);
     const sizeRef = useRef(0);
@@ -510,7 +649,14 @@ function CenterClock({ curTime, nextZman, countdownData, weather, currentCity })
             </div>
 
             <div className="clock-weather-panel">
-                <WeatherPanel weather={weather} currentCity={currentCity} className="side-weather-card" />
+                <WeatherPanel
+                    weather={weather}
+                    currentCity={currentCity}
+                    selectedCity={selectedCity}
+                    onCityChange={onCityChange}
+                    currentTime={weatherTime || curTime}
+                    className="side-weather-card"
+                />
             </div>
 
         </div>
@@ -590,13 +736,13 @@ function App() {
             const m = effectiveDate.getMonth() + 1;
             const d = effectiveDate.getDate();
 
-            const [hebDateRes, dailyRes, weatherRes] = await Promise.all([
+            const [hebDateRes, dailyRes, weatherForecast] = await Promise.all([
                 fetch(`https://www.hebcal.com/converter?cfg=json&gy=${y}&gm=${m}&gd=${d}&g2h=1`).then(r => r.json()),
                 fetch(`https://www.hebcal.com/hebcal?v=1&cfg=json&maj=on&min=on&mod=on&nx=on&start=${civilIso}&end=${satIso}&ss=on&mf=on&c=off&geo=none&F=on&heb=on&s=on&o=on&i=on`).then(r => r.json()),
-                fetch(`https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lng}&hourly=temperature_2m,weather_code&timezone=auto&forecast_days=3`).then(r => r.json())
+                fetchWeatherForecast(coords)
             ]);
 
-            setWeather(getWeatherForecast(weatherRes));
+            setWeather(weatherForecast);
 
             const items = dailyRes.items || [];
             const daf   = items.find(i => i.category === 'dafyomi' && i.date === effectiveIso)?.hebrew || "---";
@@ -642,6 +788,18 @@ function App() {
         }
     }, [selectedCity]);
 
+    const refreshWeather = useCallback(async (signal) => {
+        const coords = CITIES[selectedCity];
+        if (!coords) { setWeather(null); return; }
+
+        try {
+            const weatherForecast = await fetchWeatherForecast(coords, signal);
+            if (!signal?.aborted) setWeather(weatherForecast);
+        } catch (e) {
+            if (e?.name !== 'AbortError') console.error('Weather refresh error:', e);
+        }
+    }, [selectedCity]);
+
     const refreshPasuk = useCallback(async (parashaTitle) => {
         if (!parashaTitle) { setRandomPasuk(null); return; }
         const pasuk = await fetchRandomPasukForParasha(parashaTitle);
@@ -649,6 +807,22 @@ function App() {
     }, []);
 
     useEffect(() => { fetchData(); }, [fetchData]);
+
+    useEffect(() => {
+        const controller = new AbortController();
+        const refreshCurrentWeather = () => refreshWeather(controller.signal);
+        const interval = setInterval(refreshCurrentWeather, WEATHER_REFRESH_INTERVAL_MS);
+        const refreshWhenVisible = () => {
+            if (document.visibilityState === 'visible') refreshCurrentWeather();
+        };
+
+        document.addEventListener('visibilitychange', refreshWhenVisible);
+        return () => {
+            controller.abort();
+            clearInterval(interval);
+            document.removeEventListener('visibilitychange', refreshWhenVisible);
+        };
+    }, [refreshWeather]);
 
     useEffect(() => {
         if (!data?.parashaTitle) return;
@@ -717,6 +891,7 @@ function App() {
 
     const curTime = formatTime(now);
     const currentCity = CITIES[selectedCity];
+    const weatherTime = formatTimeForTimezone(now, weather?.timezone);
 
     if (loading) {
         return (
@@ -862,6 +1037,9 @@ function App() {
                     countdownData={countdownData}
                     weather={weather}
                     currentCity={currentCity}
+                    weatherTime={weatherTime}
+                    selectedCity={selectedCity}
+                    onCityChange={setSelectedCity}
                 />
 			</main>
 
