@@ -919,6 +919,74 @@
         .pasuk-separator { color:rgba(251,206,7,0.72); margin:0 0.9rem; font-weight:900; }
         .pasuk-next-label { color:#38bdf8; margin-left:0.45rem; font-weight:900; }
         @keyframes pasuk-marquee { from { transform:translateX(-50%); } to { transform:translateX(0); } }
+
+		/* Harmonisation du panneau météo avec le thème du cadran */
+.side-weather-card {
+    border: 1px solid rgba(251, 206, 7, 0.38);
+    border-radius: 16px;
+    color: #fff;
+    background:
+        radial-gradient(circle at 82% 7%, rgba(251, 206, 7, 0.12), transparent 32%),
+        radial-gradient(circle at 6% 58%, rgba(56, 189, 248, 0.08), transparent 42%),
+        linear-gradient(145deg, rgba(5, 12, 16, 0.97), rgba(7, 7, 7, 0.96) 46%, rgba(24, 20, 4, 0.88));
+    box-shadow:
+        0 18px 40px rgba(0, 0, 0, 0.42),
+        0 0 24px rgba(251, 206, 7, 0.10),
+        inset 0 1px 0 rgba(255, 255, 255, 0.10);
+    backdrop-filter: blur(12px);
+}
+
+.side-weather-card::before {
+    border-radius: inherit;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 46%),
+        radial-gradient(circle at 70% 18%, rgba(251, 206, 7, 0.08), transparent 28%);
+    opacity: 0.72;
+}
+
+.side-weather-card .weather-city {
+    border: 1px solid rgba(251, 206, 7, 0.34);
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.62);
+    color: #fbce07;
+    box-shadow: 0 0 12px rgba(251, 206, 7, 0.08);
+    backdrop-filter: blur(8px);
+}
+
+.side-weather-card .weather-day {
+    border-color: rgba(var(--weather-rgb), 0.24);
+    background:
+        linear-gradient(110deg, rgba(var(--weather-rgb), 0.10), rgba(255, 255, 255, 0.035) 48%, rgba(0, 0, 0, 0.22));
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.06),
+        0 6px 16px rgba(0, 0, 0, 0.22);
+}
+
+.side-weather-card .weather-day::before {
+    width: 3px;
+    opacity: 0.78;
+    box-shadow: 0 0 10px rgba(var(--weather-rgb), 0.32);
+}
+
+.side-weather-card .weather-icon-main {
+    border-color: rgba(var(--weather-rgb), 0.24);
+    background:
+        radial-gradient(circle, rgba(var(--weather-rgb), 0.14), rgba(255, 255, 255, 0.035) 60%, rgba(0, 0, 0, 0.24));
+    box-shadow:
+        0 0 16px rgba(var(--weather-rgb), 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.weather-hero-metrics {
+    text-shadow: 0 4px 16px rgba(0, 0, 0, 0.42);
+}
+
+.side-weather-card .weather-icon-hero,
+.side-weather-card .weather-icon-forecast {
+    filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.30));
+}
+
+
     </style>
 </head>
 <body>
