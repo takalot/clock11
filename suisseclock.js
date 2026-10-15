@@ -27,12 +27,12 @@ window.initSuisseClock = function (canvasId, sizePx) {
     ctx.scale(DPR, DPR);
 
     /* ── Timing Stop2Go corrigé ─────────────────────────────────
-       La trotteuse balaye en 58.5s, puis oscille jusqu'à 59.65s
-       (légèrement plus long qu'en v4), attend le top minute,
-       puis la grande aiguille saute avec amortissement réaliste.
+       La trotteuse balaie en 58.5s, oscille jusqu'à 59s,
+       puis reste au 12 jusqu'au changement de minute.
+       La grande aiguille saute avec amortissement réaliste.
     ────────────────────────────────────────────────────────────── */
     const SECOND_SWEEP_SECONDS = 58.50;
-    const SECOND_BALANCE_END   = 59.65;   // +0.10s vs v4
+    const SECOND_BALANCE_END   = 59.00;   // Pause d'une seconde au 12
     const MINUTE_JUMP_START    = 59.06;
 
     /* Frames affinées : overshoot légèrement plus prononcé,
@@ -118,10 +118,10 @@ window.initSuisseClock = function (canvasId, sizePx) {
             const r = this.radius;
             this.ctx.save();
             this.ctx.beginPath();
-            this.ctx.arc(cx, cy, r * 1.075, 0, Math.PI * 2);
+            this.ctx.arc(cx, cy, r * 1.00, 0, Math.PI * 2);
             this.ctx.shadowColor   = 'rgba(0,0,0,0.72)';
-            this.ctx.shadowBlur    = r * 0.13;
-            this.ctx.shadowOffsetY = r * 0.045;
+            this.ctx.shadowBlur    = r * 0.035;
+            this.ctx.shadowOffsetY = r * 0.008;
             this.ctx.fillStyle     = '#050505';
             this.ctx.fill();
             this.ctx.restore();
@@ -131,14 +131,17 @@ window.initSuisseClock = function (canvasId, sizePx) {
             const { x: cx, y: cy } = this.center;
             const r = this.radius;
 
-            /* ── Biseau extérieur ── */
-            const bezel = this.ctx.createRadialGradient(cx, cy - r * 0.22, r * 0.58, cx, cy, r * 1.09);
+            /* ── Biseau extérieur aminci ── */
+            const bezel = this.ctx.createRadialGradient(
+                cx, cy - r * 0.22, r * 0.58,
+                cx, cy, r * 1.015
+            );
             bezel.addColorStop(0.00, '#3a3427');
             bezel.addColorStop(0.45, '#090909');
             bezel.addColorStop(0.72, '#000000');
             bezel.addColorStop(1.00, '#2a2418');
             this.ctx.beginPath();
-            this.ctx.arc(cx, cy, r * 1.075, 0, Math.PI * 2);
+            this.ctx.arc(cx, cy, r * 1.00, 0, Math.PI * 2);
             this.ctx.fillStyle = bezel;
             this.ctx.fill();
 
