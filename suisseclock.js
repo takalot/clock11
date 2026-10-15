@@ -34,6 +34,7 @@ window.initSuisseClock = function (canvasId, sizePx) {
     const SECOND_SWEEP_SECONDS = 58.50;
     const SECOND_BALANCE_END   = 59.65;   // +0.10s vs v4
     const MINUTE_JUMP_START    = 59.06;
+   
 
     /* Frames affinées : overshoot légèrement plus prononcé,
        amortissement exponentiel plus crédible               */
