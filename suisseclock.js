@@ -1,3 +1,4 @@
+@@ -1,336 +1,336 @@
 /* =================================================================
    suisseclock.js  —  v5  —  Mondaine SBB Stop2Go authentique
    Hans Hilfiker, 1944
@@ -33,8 +34,7 @@ window.initSuisseClock = function (canvasId, sizePx) {
     ────────────────────────────────────────────────────────────── */
     const SECOND_SWEEP_SECONDS = 58.50;
     const SECOND_BALANCE_END   = 59.65;   // +0.10s vs v4
-    const MINUTE_JUMP_START    = 59.06; */
-
+    const MINUTE_JUMP_START    = 59.06;
 
     /* Frames affinées : overshoot légèrement plus prononcé,
        amortissement exponentiel plus crédible               */
@@ -293,6 +293,7 @@ window.initSuisseClock = function (canvasId, sizePx) {
             this.ctx.save();
             this.ctx.shadowColor = 'rgba(0,0,0,0.20)';
             this.ctx.shadowBlur  = r * 0.020;
+            this.ctx.strokeStyle = '#d71920';
             this.ctx.strokeStyle = '#9b0000';
             this.ctx.lineWidth   = r * 0.038;
             this.ctx.lineCap     = 'butt';
@@ -305,6 +306,7 @@ window.initSuisseClock = function (canvasId, sizePx) {
             const diskX = cx + Math.sin(angle) * diskDist;
             const diskY = cy - Math.cos(angle) * diskDist;
             this.ctx.shadowBlur  = 0;
+            this.ctx.fillStyle   = '#d71920';
             this.ctx.fillStyle   = '#9b0000';
             this.ctx.beginPath();
             this.ctx.arc(diskX, diskY, diskR, 0, Math.PI * 2);
