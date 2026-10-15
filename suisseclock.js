@@ -31,9 +31,18 @@ window.initSuisseClock = function (canvasId, sizePx) {
        (légèrement plus long qu'en v4), attend le top minute,
        puis la grande aiguille saute avec amortissement réaliste.
     ────────────────────────────────────────────────────────────── */
-    const SECOND_SWEEP_SECONDS = 58.50;
+    /*const SECOND_SWEEP_SECONDS = 58.50;
     const SECOND_BALANCE_END   = 59.65;   // +0.10s vs v4
-    const MINUTE_JUMP_START    = 59.06;
+    const MINUTE_JUMP_START    = 59.06; */
+
+   diff --git a/suisseclock.js b/suisseclock.js
+--- a/suisseclock.js
++++ b/suisseclock.js
+@@ -34,3 +34,3 @@
+     const SECOND_SWEEP_SECONDS = 58.50;
+-    const SECOND_BALANCE_END   = 59.65;   // +0.10s vs v4
++    const SECOND_BALANCE_END   = 59.00;   // Pause d'une seconde au 12
+     const MINUTE_JUMP_START    = 59.06;
 
     /* Frames affinées : overshoot légèrement plus prononcé,
        amortissement exponentiel plus crédible               */
