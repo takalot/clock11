@@ -240,6 +240,37 @@
             display:flex;
             flex-direction:column;
             justify-content:center;
+            min-height:132px;
+            gap:0.22rem;
+            padding-top:0.65rem;
+            padding-bottom:0.65rem;
+        }
+
+        .date-card > div:first-child {
+            font-size:clamp(1.35rem, 1.75vw, 1.8rem);
+            line-height:1.2;
+        }
+
+        .date-card > div:nth-child(2) {
+            font-size:clamp(1.1rem, 1.4vw, 1.45rem);
+            line-height:1.2;
+        }
+
+        .date-card > div:nth-child(3) {
+            margin-top:0.15rem;
+            padding-top:0.45rem;
+        }
+
+        .date-card > div:nth-child(3) > div:last-child {
+            font-size:clamp(1.2rem, 1.55vw, 1.6rem);
+            line-height:1.2;
+        }
+
+        @media (max-width:900px) {
+            .date-card { min-height:120px; }
+            .date-card > div:first-child { font-size:clamp(1.25rem, 4vw, 1.6rem); }
+            .date-card > div:nth-child(2) { font-size:clamp(1.05rem, 3.4vw, 1.3rem); }
+            .date-card > div:nth-child(3) > div:last-child { font-size:clamp(1.15rem, 3.6vw, 1.45rem); }
         }
 
         @media (max-width: 1500px) {
